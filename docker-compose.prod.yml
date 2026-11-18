@@ -1,0 +1,80 @@
+# Production stack: docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Only the web container is published. Put HTTPS in front of it (see docs/DEPLOYMENT.md).
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      DATABASE_URL: ${DATABASE_URL:?set Supabase PostgreSQL DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT_BACKEND: ${RATE_LIMIT_BACKEND:-memory}
+      EMAIL_DELIVERY_BACKEND: ${EMAIL_DELIVERY_BACKEND:-sync}
+      OSRM_BASE_URL: ${OSRM_BASE_URL:-}
+      OSRM_PROFILE: ${OSRM_PROFILE:-driving}
+      CORS_ORIGINS: ${PUBLIC_URL:?set PUBLIC_URL in .env, e.g. https://fleet.example.com}
+      FRONTEND_URL: ${PUBLIC_URL}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-FleetMind <no-reply@localhost>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      AFROMESSAGE_API_KEY: ${AFROMESSAGE_API_KEY:-}
+      AFROMESSAGE_IDENTIFIER_ID: ${AFROMESSAGE_IDENTIFIER_ID:-}
+      AFROMESSAGE_SENDER: ${AFROMESSAGE_SENDER:-}
+      SMS_TIMEOUT_SECONDS: ${SMS_TIMEOUT_SECONDS:-10}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET:-fleetmind-documents}
+
+  redis:
+    profiles: ["async"]
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 12
+
+  worker:
+    profiles: ["async"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    command: ["celery", "-A", "app.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-FleetMind <no-reply@localhost>}
+    depends_on:
+      redis: {condition: service_healthy}
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ""
+        VITE_DEMO_LOGIN: "false"
+    restart: unless-stopped
+    ports: ["${HTTP_PORT:-80}:80"]
+    depends_on:
+      backend: {condition: service_healthy}
+
+volumes:
+  redisdata:

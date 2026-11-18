@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 248 250 252; --surface: 255 255 255; --line: 203 213 225;
+  --ink: 15 23 42; --muted: 71 85 105;
+  --electric: 29 78 216; --violet: 109 40 217;
+  --ok: 4 120 87; --warn: 161 98 7; --danger: 185 28 28;
+}
+.dark {
+  --bg: 0 0 0; --surface: 12 14 18; --line: 43 47 55;
+  --ink: 245 247 250; --muted: 180 185 193;
+  --electric: 96 165 250; --violet: 167 139 250;
+  --ok: 74 222 128; --warn: 250 204 21; --danger: 248 113 113;
+}
+html { scroll-behavior: smooth; }
+html:not(.dark) { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body {
+  @apply bg-bg text-ink antialiased;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.dark body {
+  background-image:
+    radial-gradient(34rem 34rem at var(--spotlight-x, 78%) var(--spotlight-y, 12%), rgb(var(--electric) / 0.17), transparent 72%),
+    radial-gradient(60rem 38rem at 10% 10%, rgb(var(--violet) / 0.08), transparent 72%),
+    radial-gradient(56rem 36rem at 90% 90%, rgb(var(--electric) / 0.07), transparent 72%);
+  background-attachment: fixed;
+  background-size: auto, 150% 150%, 150% 150%;
+  background-position: 0 0, 0% 0%, 100% 100%;
+  animation: ambient-drift 28s ease-in-out infinite alternate;
+}
+@layer components {
+  .glass { @apply border border-line bg-surface/95 backdrop-blur-sm shadow-card; }
+  .dark .glass { @apply bg-surface/95; }
+  .focus-ring { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric focus-visible:ring-offset-2 focus-visible:ring-offset-bg; }
+  .text-gradient { @apply bg-gradient-to-r from-ink to-electric bg-clip-text text-transparent; }
+}
+.dark .glass { box-shadow: 0 16px 42px rgb(0 0 0 / 0.42), inset 0 1px 0 rgb(255 255 255 / 0.025); }
+.glass:hover { border-color: rgb(var(--electric) / 0.38); }
+@keyframes ambient-drift {
+  from { background-position: 0 0, 0% 0%, 100% 100%; }
+  to { background-position: 0 0, 100% 80%, 15% 10%; }
+}
+.auth-fields > * { animation: auth-field-enter 0.44s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.auth-fields > :nth-child(2) { animation-delay: 45ms; }
+.auth-fields > :nth-child(3) { animation-delay: 90ms; }
+.auth-fields > :nth-child(4) { animation-delay: 135ms; }
+.auth-fields > :nth-child(5) { animation-delay: 180ms; }
+.auth-fields > :nth-child(6) { animation-delay: 225ms; }
+.auth-fields > :nth-child(7) { animation-delay: 270ms; }
+.auth-fields > :nth-child(8) { animation-delay: 315ms; }
+@keyframes auth-field-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Leaflet: dark map tiles in dark mode, and keep the map's internal z-indexes below modals and the sidebar. */
+.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+.leaflet-container { background: rgb(var(--bg)); font-family: inherit; }
+.map-label { background: transparent; border: 0; box-shadow: none; color: #fff; font-weight: 700; font-size: 11px; padding: 0; }
+.map-label::before { display: none; }
+.sidebar-nav { scrollbar-width: none; -ms-overflow-style: none; scroll-behavior: smooth; }
+.sidebar-nav::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  .auth-fields > * { animation: none !important; }
+  .dark body { animation: none !important; }
+}

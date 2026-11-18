@@ -9,6 +9,6 @@ fi
 if [ "$ENVIRONMENT" = "production" ]; then
   # Live tracking and alert dedupe are still process-local; use one worker until those move to shared infrastructure.
   # --proxy-headers makes request.client the real caller behind nginx; keep this port unpublished.
-  exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips='*'
+  exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --proxy-headers --forwarded-allow-ips='*'
 fi
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --reload
